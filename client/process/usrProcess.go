@@ -10,7 +10,9 @@ import (
 )
 
 type UsrProcess struct {
-	Conn net.Conn
+	Conn     net.Conn
+	UserName string
+	UserList map[string]int
 }
 
 var (
@@ -63,9 +65,16 @@ func (this *UsrProcess) Login() (err error) {
 	json.Unmarshal([]byte(res.Data), &logRes)
 
 	if logRes.Code == message.LogSucc {
-		//登录成功，启动一个协程，保持与服务器的通讯
-		go serverProcessMes(this.Conn)
-		ShowMenu()
+		this.UserName = name
+		//?显示当前在线用户,并添加到用户列表
+		for i, v := range logRes.UserList {
+			fmt.Println(i, ": ", v)
+			this.UserList[v] = message.Online
+		}
+		//?登录成功，启动一个协程，保持与服务器的通讯
+		//?如果服务器有消息推送给客户端，则接收他
+		go this.serverProcessMes()
+		this.ShowMenu()
 	} else {
 		fmt.Println(logRes.Error, logRes.Code)
 	}
@@ -117,9 +126,15 @@ func (this *UsrProcess) Register() (err error) {
 	json.Unmarshal([]byte(res.Data), &RegRes)
 
 	if RegRes.Code == message.RegSucc {
-		//注册成功，启动一个协程，保持与服务器的通讯
-		go serverProcessMes(this.Conn)
-		ShowMenu()
+		this.UserName = name
+		//?显示当前在线用户,并添加到用户列表
+		for i, v := range RegRes.UserList {
+			fmt.Println(i, ": ", v)
+			this.UserList[v] = message.Online
+		}
+		//?注册成功，启动一个协程，保持与服务器的通讯
+		go this.serverProcessMes()
+		this.ShowMenu()
 	} else {
 		fmt.Println(RegRes.Error, RegRes.Code)
 	}

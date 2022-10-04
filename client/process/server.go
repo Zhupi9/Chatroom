@@ -1,13 +1,13 @@
 package process
 
 import (
+	"chatroom/common/message"
 	"chatroom/common/utils"
 	"fmt"
-	"net"
 	"os"
 )
 
-func ShowMenu() {
+func (this *UsrProcess) ShowMenu() {
 	for {
 		fmt.Println("----------------欢迎来到Chatroom---------------")
 		fmt.Println("----------------1.在线用户--------------")
@@ -19,7 +19,10 @@ func ShowMenu() {
 		fmt.Scanln(&choice)
 		switch choice {
 		case "1":
-			fmt.Println("显示在线用户列表～")
+			fmt.Println("在线用户列表:")
+			for user, status := range this.UserList {
+				fmt.Println(user, ":", status)
+			}
 		case "2":
 			fmt.Println("发送消息～")
 		case "3":
@@ -35,10 +38,10 @@ func ShowMenu() {
 
 }
 
-func serverProcessMes(conn net.Conn) {
+func (this *UsrProcess) serverProcessMes() {
 	//创建一个transfer实例，不停的读取服务器发送的消息
 	var tf = &utils.Transfer{
-		Conn: conn,
+		Conn: this.Conn,
 	}
 	for {
 		mes, err := tf.ReadPkg()
@@ -46,6 +49,10 @@ func serverProcessMes(conn net.Conn) {
 			return
 		}
 		//根据读取到消息进行后面的处理
-		fmt.Printf("mes: %v\n", mes)
+		switch mes.Type {
+		case message.UserStatusMesType:
+			this.GotUsrStatusChange(mes)
+			//TODO 其他类型短消息的处理
+		}
 	}
 }

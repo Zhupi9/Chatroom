@@ -1,3 +1,4 @@
+// TODO 添加在用户登录时，返回当前在线用户列表
 package process
 
 import (
@@ -12,6 +13,8 @@ import (
 
 type UsrProcess struct {
 	Conn net.Conn
+	//当前链接的用户名
+	UserName string
 }
 
 func (this *UsrProcess) Login() (user *user.User, err error) {
@@ -29,12 +32,7 @@ func (this *UsrProcess) Login() (user *user.User, err error) {
 	if err != nil {
 		return
 	}
-	/*
-		if mes.Type != message.LoginMesType { //如果读取到的消息类型不是登陆消息，则不受理
-			fmt.Println("Not required type of message!")
-			return
-		}
-	*/
+
 	err = json.Unmarshal([]byte(mes.Data), &logInf)
 	if err != nil {
 		return
@@ -49,9 +47,17 @@ func (this *UsrProcess) Login() (user *user.User, err error) {
 		} else {
 			logRes.Code = message.ServerFail //505
 		}
-	} else {
+	} else { //? 用户登录成功，101
 		fmt.Printf("user %v Login ....\n", logInf.UserName)
 		logRes.Code = message.LogSucc //101
+		//?用户登录成功，将用户放到到OnlineUsers当中
+		this.UserName = logInf.UserName
+		userMgr.AddOnlineUser(this)
+		//?将OnlineUSer添加到回复中发回客户端
+		for i := range userMgr.onlineUsers {
+			logRes.UserList = append(logRes.UserList, i)
+		}
+
 	}
 	fmt.Println(logRes.Error, logRes.Code)
 
@@ -67,7 +73,10 @@ func (this *UsrProcess) Login() (user *user.User, err error) {
 	if err != nil {
 		return
 	}
-
+	//?如果登录成功101，则通知其他用户该用户已上线
+	if logRes.Code == message.LogSucc {
+		this.NotifyOthersOnline(this.UserName)
+	}
 	return
 }
 
@@ -100,9 +109,16 @@ func (this *UsrProcess) Register() (user *user.User, err error) {
 		} else {
 			RegRes.Code = message.ServerFail //505
 		}
-	} else {
+	} else { //?注册成功101
 		fmt.Printf("user %v Login ....\n", RegInf.User.UserName)
 		RegRes.Code = message.RegSucc //101
+		//用户注册成功后直接登录，将用户放到到OnlineUsers当中
+		this.UserName = RegInf.User.UserName
+		userMgr.AddOnlineUser(this)
+		//?将在线用户写到回复中
+		for i := range userMgr.onlineUsers {
+			RegRes.UserList = append(RegRes.UserList, i)
+		}
 	}
 	fmt.Println(RegRes.Error, RegRes.Code)
 	//将回复（RegRes）序列化发送
@@ -117,6 +133,42 @@ func (this *UsrProcess) Register() (user *user.User, err error) {
 	if err != nil {
 		return
 	}
+	//?如果注册成功102，则通知其他用户该用户已上线
+	if RegRes.Code == message.RegSucc {
+		this.NotifyOthersOnline(this.UserName)
+	}
+	return
+}
 
+func (this *UsrProcess) NotifyOthersOnline(onlineName string) (err error) {
+	//?定义发送消息，以及修改用户状态消息
+	var mes message.Message
+	var StaMes message.UserStatusMes
+
+	StaMes.UserName = onlineName
+	StaMes.Status = message.Online
+
+	data, err := json.Marshal(StaMes)
+	if err != nil {
+		return
+	}
+	mes.Type = message.UserStatusMesType
+	mes.Data = string(data)
+	//?循环在线用户
+	for name, link := range userMgr.onlineUsers {
+		if name == this.UserName {
+			continue
+		}
+		//?通知每个的用户
+		link.NotifyMeOnline(mes)
+	}
+	return
+}
+
+// ?通知我，某用户上线了
+func (this *UsrProcess) NotifyMeOnline(mes message.Message) (err error) {
+	tf := &utils.Transfer{Conn: this.Conn}
+	//?发送消息给客户端
+	err = tf.WritePkg(mes)
 	return
 }

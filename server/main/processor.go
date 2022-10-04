@@ -16,7 +16,7 @@ func Processor(conn net.Conn, bchan chan bool) {
 
 	defer func() {
 		conn.Close()
-		fmt.Println("Connection Closed")
+		fmt.Println(addr, "Connection Closed")
 	}()
 
 	for {

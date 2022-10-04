@@ -19,7 +19,8 @@ func main() {
 	fmt.Println("Connected to Chatroom server!", conn)
 	//新建一个process(client)实例
 	var process = &process.UsrProcess{
-		Conn: conn,
+		Conn:     conn,
+		UserList: make(map[string]int, 1024),
 	}
 
 	for {
