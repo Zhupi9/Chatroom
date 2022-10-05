@@ -1,5 +1,6 @@
 package message
 
+//!ChangeLog 添加了短消息类型
 import "chatroom/common/user"
 
 const (
@@ -9,6 +10,7 @@ const (
 	RegisterMesType    = "RegisterMes"
 	RegisterResMesType = "RegisterResMes"
 	UserStatusMesType  = "UserStatusMes"
+	SmsMesType         = "SmsMesType"
 
 	//?服务器响应码
 	LogSucc    = 101 //登录成功
@@ -18,9 +20,13 @@ const (
 	ServerFail = 505 //服务器错误
 
 	//?用户状态
-	Online  = 1
-	OffLine = 2
-	Sleep   = 3
+	Online  = 0
+	OffLine = 1
+	Sleep   = 2
+)
+
+var (
+	Status = []string{"在线", "离线", "睡眠"}
 )
 
 type Message struct {
@@ -35,9 +41,10 @@ type LoginMes struct {
 }
 
 type LoginResMes struct {
-	Code     int      `json:"code"`
-	Error    string   `json:"error"`
-	UserList []string `json:"userlist"`
+	Code        int       `json:"code"`
+	Error       string    `json:"error"`
+	UserList    []string  `json:"userlist"`
+	CurrentUser user.User `json:"currentuser"`
 }
 
 type RegisterMes struct {
@@ -52,6 +59,13 @@ type RegisterResMes struct {
 
 // ?服务器端推送用户上线（离线）通知
 type UserStatusMes struct {
-	UserName string `json:"username"`
+	UserName string `json:"username"` //该用户状态改变
 	Status   int    `json:"status"`
+}
+
+// ?发送短消息
+type SmsMes struct {
+	SrcUser  string   `json:"srcuser"`
+	DestUser []string `json:"destuser"`
+	Content  string   `json:"content"`
 }

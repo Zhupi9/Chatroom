@@ -20,7 +20,7 @@ func NewUserDao(pool *redis.Pool) (userDao *UserDao) {
 	userDao = &UserDao{
 		pool: pool,
 	}
-	fmt.Println("UserDao created: ", userDao)
+	fmt.Println("UserDao created...")
 	return
 }
 

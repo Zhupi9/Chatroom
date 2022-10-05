@@ -1,9 +1,11 @@
 package main
 
-import (
-	_ "chatroom/common/message"
-	"chatroom/server/process"
+//TODO 修改服务器Process结构，根据接受消息类型作出反应
 
+import (
+	"chatroom/common/message"
+	"chatroom/common/utils"
+	"chatroom/server/process"
 	"fmt"
 	"net"
 )
@@ -18,58 +20,50 @@ func Processor(conn net.Conn, bchan chan bool) {
 		conn.Close()
 		fmt.Println(addr, "Connection Closed")
 	}()
-
 	for {
-		var buf []byte = make([]byte, 1024)
-
-		n, err := conn.Read(buf)
+		//接受客户端发来消息
+		tf := utils.Transfer{
+			Conn: conn,
+		}
+		mes, err := tf.ReadPkg()
 		if err != nil {
-			bchan <- true
 			return
 		}
-
-		content := string(buf[:n])
-
-		switch content {
-		//处理登陆请求
-		case "1":
-			var process = &process.UsrProcess{
-				Conn: conn,
-			}
-			fmt.Printf("Client %v want to log in\n", addr)
-			_, err = process.Login()
-			if err != nil {
-				fmt.Println(err)
-			}
-		//处理注册请求
-		case "2":
-			var process = &process.UsrProcess{
-				Conn: conn,
-			}
-			fmt.Printf("Client %v want to sign in for new user\n", addr)
-			_, err = process.Register()
-			if err != nil {
-				fmt.Println(err)
-			}
-		case "3":
-			fmt.Printf("Client %v exit\n", addr)
+		err = serverProcessMes(conn, &mes)
+		if err != nil {
 			return
-		default:
 		}
 	}
 
 }
 
-/*
 func serverProcessMes(conn net.Conn, mes *message.Message) (err error) {
 	switch mes.Type {
 	case message.LoginMesType:
 		//处理登录消息
-
+		var up = &process.UsrProcess{
+			Conn: conn,
+		}
+		_, err = up.Login(*mes)
+		if err != nil {
+			return
+		}
 	case message.RegisterMesType:
 		//处理注册消息
+		var up = &process.UsrProcess{
+			Conn: conn,
+		}
+		_, err = up.Register(*mes)
+		if err != nil {
+			return
+		}
+	case message.SmsMesType:
+		//处理短消息
+		var sp = &process.SmsProcess{
+			Conn: conn,
+		}
+		sp.SendSMSToOthers(*mes)
+		return
 	}
-
-	return nil
+	return
 }
-*/

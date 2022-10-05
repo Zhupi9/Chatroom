@@ -2,6 +2,7 @@ package process
 
 import (
 	"chatroom/common/message"
+	"chatroom/common/user"
 	_ "chatroom/common/user"
 	"chatroom/common/utils"
 	"encoding/json"
@@ -11,7 +12,7 @@ import (
 
 type UsrProcess struct {
 	Conn     net.Conn
-	UserName string
+	User     user.User
 	UserList map[string]int
 }
 
@@ -23,13 +24,6 @@ var (
 
 // 客户端登录处理
 func (this *UsrProcess) Login() (err error) {
-	choice = "1"
-	_, err = this.Conn.Write([]byte(choice))
-	if err != nil {
-		fmt.Println("Login Error...")
-		return
-	}
-
 	//	准备发送和接收的消息
 	var mes, res message.Message
 	var logInf message.LoginMes
@@ -59,13 +53,13 @@ func (this *UsrProcess) Login() (err error) {
 	if err != nil {
 		return
 	}
-	//读取服务器端的回复，code为202则登录成功，为404则登录失败
+	//读取服务器端的回复，code为101则登录成功，为404则登录失败
 	res, err = tf.ReadPkg()
 
 	json.Unmarshal([]byte(res.Data), &logRes)
 
 	if logRes.Code == message.LogSucc {
-		this.UserName = name
+		this.User = logRes.CurrentUser
 		//?显示当前在线用户,并添加到用户列表
 		for i, v := range logRes.UserList {
 			fmt.Println(i, ": ", v)
@@ -83,12 +77,7 @@ func (this *UsrProcess) Login() (err error) {
 }
 
 func (this *UsrProcess) Register() (err error) {
-	//告诉服务器要进行注册
-	choice = "2"
-	_, err = this.Conn.Write([]byte(choice))
-	if err != nil {
-		return
-	}
+
 	//准备发送和接收消息
 	var mes, res message.Message
 	var RegInf message.RegisterMes
@@ -126,7 +115,7 @@ func (this *UsrProcess) Register() (err error) {
 	json.Unmarshal([]byte(res.Data), &RegRes)
 
 	if RegRes.Code == message.RegSucc {
-		this.UserName = name
+		this.User = RegInf.User
 		//?显示当前在线用户,并添加到用户列表
 		for i, v := range RegRes.UserList {
 			fmt.Println(i, ": ", v)
@@ -138,6 +127,12 @@ func (this *UsrProcess) Register() (err error) {
 	} else {
 		fmt.Println(RegRes.Error, RegRes.Code)
 	}
-
 	return
+}
+
+func (this *UsrProcess) ShowUserList() {
+	fmt.Println("在线用户列表:")
+	for user, status := range this.UserList {
+		fmt.Println(user, ":", message.Status[status])
+	}
 }

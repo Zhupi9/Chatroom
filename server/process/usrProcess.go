@@ -17,20 +17,14 @@ type UsrProcess struct {
 	UserName string
 }
 
-func (this *UsrProcess) Login() (user *user.User, err error) {
+func (this *UsrProcess) Login(mes message.Message) (user *user.User, err error) {
 
 	//服务器接受登录信息
-	var mes, res message.Message
+	var res message.Message
 	var logInf message.LoginMes
 	var logRes message.LoginResMes
 	var tf = &utils.Transfer{
 		Conn: this.Conn,
-	}
-
-	//读取客户端发来的登录信息
-	mes, err = tf.ReadPkg()
-	if err != nil {
-		return
 	}
 
 	err = json.Unmarshal([]byte(mes.Data), &logInf)
@@ -52,6 +46,7 @@ func (this *UsrProcess) Login() (user *user.User, err error) {
 		logRes.Code = message.LogSucc //101
 		//?用户登录成功，将用户放到到OnlineUsers当中
 		this.UserName = logInf.UserName
+		logRes.CurrentUser = *user
 		userMgr.AddOnlineUser(this)
 		//?将OnlineUSer添加到回复中发回客户端
 		for i := range userMgr.onlineUsers {
@@ -80,18 +75,13 @@ func (this *UsrProcess) Login() (user *user.User, err error) {
 	return
 }
 
-func (this *UsrProcess) Register() (user *user.User, err error) {
+func (this *UsrProcess) Register(mes message.Message) (user *user.User, err error) {
 	//服务器接受登录信息
-	var mes, res message.Message
+	var res message.Message
 	var RegInf message.RegisterMes
 	var RegRes message.RegisterResMes
 	var tf = &utils.Transfer{
 		Conn: this.Conn,
-	}
-	//接受客户端发来的注册信息
-	mes, err = tf.ReadPkg()
-	if err != nil {
-		return
 	}
 
 	err = json.Unmarshal([]byte(mes.Data), &RegInf)
@@ -162,13 +152,5 @@ func (this *UsrProcess) NotifyOthersOnline(onlineName string) (err error) {
 		//?通知每个的用户
 		link.NotifyMeOnline(mes)
 	}
-	return
-}
-
-// ?通知我，某用户上线了
-func (this *UsrProcess) NotifyMeOnline(mes message.Message) (err error) {
-	tf := &utils.Transfer{Conn: this.Conn}
-	//?发送消息给客户端
-	err = tf.WritePkg(mes)
 	return
 }

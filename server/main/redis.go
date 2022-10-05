@@ -18,5 +18,5 @@ func initPool(addr string, maxIdle, maxAct int, timeout time.Duration) {
 			return redis.Dial("tcp", addr)
 		},
 	}
-	fmt.Println("Redis Pool connected: ", pool)
+	fmt.Println("Redis Pool connected...")
 }

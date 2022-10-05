@@ -1,13 +1,19 @@
 package process
 
 import (
+	"bufio"
 	"chatroom/common/message"
 	"chatroom/common/utils"
 	"fmt"
 	"os"
+	"strings"
 )
 
 func (this *UsrProcess) ShowMenu() {
+	sms := &SmsProcess{
+		Conn: this.Conn,
+		User: this.User,
+	}
 	for {
 		fmt.Println("----------------欢迎来到Chatroom---------------")
 		fmt.Println("----------------1.在线用户--------------")
@@ -18,13 +24,30 @@ func (this *UsrProcess) ShowMenu() {
 		var choice string
 		fmt.Scanln(&choice)
 		switch choice {
-		case "1":
-			fmt.Println("在线用户列表:")
-			for user, status := range this.UserList {
-				fmt.Println(user, ":", status)
-			}
+		case "1": //?显示所有用户（包括离线用户）
+			this.ShowUserList()
 		case "2":
-			fmt.Println("发送消息～")
+			var destUsrName, content string
+			var destUsrList []string = make([]string, 0)
+			fmt.Println("选择发送消息对象们:(输入End以结束)")
+			for {
+				fmt.Scanln(&destUsrName)
+				if strings.EqualFold(destUsrName, "end") {
+					break
+				}
+				destUsrList = append(destUsrList, destUsrName)
+			}
+			fmt.Println("输入发送消息内容:")
+			content, err := bufio.NewReader(os.Stdin).ReadString('\n')
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				err = sms.SendSMS(content, destUsrList)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+
 		case "3":
 			fmt.Println("信息列表～")
 		case "4":
@@ -51,8 +74,18 @@ func (this *UsrProcess) serverProcessMes() {
 		//根据读取到消息进行后面的处理
 		switch mes.Type {
 		case message.UserStatusMesType:
-			this.GotUsrStatusChange(mes)
-			//TODO 其他类型短消息的处理
+			err = this.GotUsrStatusChange(mes)
+			if err != nil {
+				fmt.Println(err)
+			}
+		case message.SmsMesType:
+			sp := &SmsProcess{
+				Conn: this.Conn,
+			}
+			err = sp.GotSMS(mes)
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 	}
 }

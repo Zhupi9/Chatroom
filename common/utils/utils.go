@@ -11,7 +11,7 @@ import (
 
 type Transfer struct {
 	Conn net.Conn
-	Buf  [2048]byte
+	Buf  [8192]byte
 }
 
 func (this *Transfer) ReadPkg() (mes message.Message, err error) {
